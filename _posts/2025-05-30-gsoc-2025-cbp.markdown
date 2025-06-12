@@ -1,0 +1,75 @@
+---
+layout: post
+title:  "GSoC 2025 Community Bonding Period"
+date:   2025-05-30 11:59:00 +0300
+categories: GSoC, AGL, TLF
+---
+
+## Project Background
+
+This project is part of the [Google Summer of Code][1] (GSoC) 2025 program. The mentoring organization is 
+[The Linux Foundation][2], through its [Automotive Grade Linux (AGL)][3] open source project. AGL is one of 
+The Linux Foundation’s projects, aimed at accelerating the development of a fully open software stack for connected cars.
+
+### Intelligent Camera Stream Integration and Warning System (ICSW)
+
+The primary goal of this project is to develop a **camera-based application** tailored to automotive use cases. 
+Cameras play a crucial role in the automotive perception stack, from classifying static and moving objects to 
+recognizing traffic light status. This project ultimately aims to implement an **in-vehicle warning system** that issues 
+alerts when objects enter the vehicle’s blind spot.
+
+The planned subtasks for the GSoC 2025 contribution include:
+
+1. Integrating inference models (e.g., object detection, depth estimation) as **PipeWire** nodes
+
+2. Retrieving raw and processed camera streams as **Flutter overlays**
+
+3. Enabling dynamic reconfiguration of the PipeWire graph at runtime
+
+## Community Bonding Period (May 8 – June 1)
+
+During the Community Bonding Period, I engaged with the AGL community primarily through the [AGL website][3] and the 
+community Discord channel. The project proposal served as the foundation for initiating communication with my GSoC 
+mentors — [Jan-Simon](mailto:jsmoeller@linuxfoundation.org), [Walt](mailto:wminer@linuxfoundation.org), 
+[Joel](mailto:joel.winarske@toyotaconnected.com), [George](mailto:george.kiagiadakis@collabora.com), and other AGL members.
+
+Throughout the application period, my mentors provided a clear vision, which helped me to consolidate and refine my ideas 
+in the proposal. I used the bonding period to become more familiar with the AGL ecosystem. As I:
+
+1. Participated in the AGL Weekly Developer Call
+2. Set up my host development environment
+3. Built the AGL master branch and ran a demo image on QEMU
+
+I also began exploring PipeWire to list the available camera devices on my host machine along with their supported 
+formats:
+
+{% highlight bash %}
+$ wpctl status
+Video
+├─ Devices:
+│      34. Integrated_Webcam_HD                [v4l2]
+│      35. Integrated_Webcam_HD                [v4l2]
+├─ Sinks:
+├─ Sources:
+│      36. Integrated_Webcam_HD               
+├─ Filters:
+└─ Streams:
+
+$ pw-dump 36
+{
+"mediaType": "video",
+"mediaSubtype": "raw",
+"format": "YUY2",
+"size": { "width": 160, "height": 120 },
+"framerate": { "num": 30, "denom": 1 }
+}
+{% endhighlight %}
+
+## Next steps
+To tweak the video-play.c script of the PipeWire API `src/examples/video-play.c` to retrieve the camera stream from 
+my host machine
+
+
+[1]: https://summerofcode.withgoogle.com/
+[2]: https://www.linuxfoundation.org/projects
+[3]: https://www.automotivelinux.org/
