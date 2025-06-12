@@ -1,0 +1,29 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 01 Status Update"
+date:   2025-06-06 11:59:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 1 progress
+
+This week, I began exploring the `video-play.c` script, where I needed to adapt the code to retrieve the correct 
+format from my host machine's camera. The format provided by the camera was YUY2, so I primarily identified two areas in 
+the code that needed modification to support this format: 
+1. Add support for the YUY2 format in `on_stream_param_changed` in text creation and format changes.
+2. Include the YUY2 format in the format enumeration in `build_format` function.
+
+Although I started to make the necessary code modifications, they were not really tested. During AGL GSoC weekly call,
+it was pointed out that the support for the camera format is already implemented as `camera_pipewire` 
+of [ivi-homescreen-plugins][1]. 
+
+
+## Next steps
+1. Build the [ivi-homescreen][2] along with `camera_pipewire` plugin.
+2. Run and explore the [camera/camera_linux][3] example from [tcna-packages][4] repository.
+
+
+[1]: https://github.com/toyota-connected/ivi-homescreen-plugins/
+[2]: https://github.com/toyota-connected/ivi-homescreen/
+[3]: https://github.com/toyota-connected/tcna-packages/tree/main/packages/camera/camera_linux
+[4]: https://github.com/toyota-connected/tcna-packages
