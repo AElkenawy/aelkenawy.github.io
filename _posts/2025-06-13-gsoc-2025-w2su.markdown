@@ -1,0 +1,50 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 02 Status Update"
+date:   2025-06-13 00:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 2 progress
+
+This week, I began setting up the [ivi-homescreen][1] Flutter C++ embedder, in order to run the `camera_linux` 
+example app.
+Following the CI Jobs of `workflows/ivi-homescreen.yaml`, the ivi-homescreen embedder was built using:
+{% highlight bash %}
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug \ 
+-DPLUGINS_DIR=`pwd`/../ivi-homescreen-plugins/plugins \
+-DBUILD_PLUGIN_CAMERA_PIPEWIRE=ON \
+-DBUILD_PLUGIN_VIDEO_PLAYER_LINUX=ON \ 
+-DDEBUG_PLATFORM_MESSAGES=ON
+{% endhighlight %}
+
+The Flutter workspace was set with `pipewire` flag and the camera_linux example application was run as follows:
+{% highlight bash %}
+$ flutter_workspace.py --flutter-version=3.27.1 --enable=pipewire
+$ source setup_env.sh
+$ cd /path/to/camera_linux/example
+$ flutter run -d desktop-homescreen
+{% endhighlight %}
+
+I re-checked the resulting PipeWire connections after launching the example:
+{% highlight bash %}
+$ wpctl status
+└─ Streams:
+40. homescreen                                                  
+    41. input_1         < Integrated_Webcam_HD:capture_1	[active]
+46. cheese                                                      
+    47. input_1
+{% endhighlight %}
+
+I also reviewed the connections between the integrated webcam and homescreen or cheese using qpwgraph:
+![PipeWire Connections](/assets/images/gsoc25_w2/w2_fig1.png)
+
+I started exploring the code of camera_linux plugin and example application `camera_linux/example` 
+
+## Next steps
+1. Continue the exploration of the `camera_linux/example`
+2. Create a sandbox environment for sample application testing and understanding the underlying API of `camera_linux`  
+
+
+
+[1]: https://github.com/toyota-connected/ivi-homescreen/
