@@ -1,0 +1,25 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 03 Status Update"
+date:   2025-06-20 00:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 3 progress
+
+This week, I continued exploring the code of the `camera_linux` plugin and its example application `camera_linux/example`.
+The example application is directly related to:
+1. The `ivi-homescreen` embedder, which hosts the Flutter's native code, Flutter engine and registers the relevant plugins
+2. The `camera_pipewire` plugin, which sets up and manages the PipeWire graph for the camera nodes and streams
+
+In order to get deeper insights of the complete pipeline, I created the following UML diagram to illustrate the 
+Camera Plugin logic and its interconnections with different elements:
+![PipeWire Connections](/assets/images/gsoc25_w3/w3_fig1.png)
+
+As a first step in building the complete application, I began writing a simple PipeWire node where it connects the `Integrated_webcam_HD` camera source to a sink node, as
+a first step of the complete application. I had a look at the Flutter documentation, which includes the platform channels
+and packages' metadata of pubspec. 
+
+## Next steps
+1. Develop a boilerplate PipeWire application with multiple sources that could be manually rewired using `qpwgraph`
+2. Integrate a Yolo detection module inside the PipeWire application
