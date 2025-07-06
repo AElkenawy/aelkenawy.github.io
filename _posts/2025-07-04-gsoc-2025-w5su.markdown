@@ -1,0 +1,46 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 05 Status Update"
+date:   2025-07-04 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 5 progress
+
+### Flutter Application
+
+This week, I created a simple version of the `camera_linux` example application, in which the camera stream from the 
+first available camera on the PC is rendered to the screen. The application included the `camera_linux` in its 
+`pubspec.yaml` as a dependency:
+{% highlight yaml %}
+dependencies:
+  camera: ^0.11.0+1
+  camera_linux:
+    path: ../../camera/tcna-packages/packages/camera/camera_linux
+{% endhighlight %}
+
+I tried to connect the output stream from my PipeWire `raw playback` node to the Flutter application, but the connection
+was unsuccessful due to difference in stream formats. The Flutter application expects mjpeg, while the camera outputs
+the raw format.
+
+### FFI 
+
+I started exploring the Foreign Function Interface (FFI) and [ffigen package][2] to generate C bindings that would allow
+executing native PipeWire API calls from the Flutter application. At first, I tried to use the [hooks library][1]
+`system_library` example, but I encountered Dart version compatibility issue, as the hooks library requires Dart 3.9.0. 
+Then I switched to manually generating the binding by adding several PipeWire header files as `entry-points` to a 
+`config.yaml` file. After this, the bindings were generated using:
+{% highlight bash %}
+$ dart run ffigen --config config.yaml
+{% endhighlight %}
+I was unable to test the generated bindings, as some API calls were missing, most likely due to incorrect configuration 
+on my part.
+
+## Next steps
+1. Dynamically generating the C bindings for Dart using the hook library
+2. Resolve the camera format compatibility issue on the Flutter application
+3. Complete the Flutter app to establish PipeWire stream connection(s) in real time, with gRPC calls
+4. Integrate the Yolo detection module into the `detection playback` node.
+
+[1]: https://github.com/dart-lang/native/tree/main/pkgs/hooks/example/build/system_library
+[2]: https://pub.dev/packages/ffigen
