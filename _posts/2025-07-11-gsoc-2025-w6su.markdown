@@ -1,0 +1,43 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 06 Status Update"
+date:   2025-07-11 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 6 progress
+
+This week, I had the opportunity to attend the [All Member Meeting][1] (AMM) of [Automotive Grade Linux (AGL)][2], held in Berlin. The event featured 
+numerous presentations covering a variety of topics including Software-Defined Vehicles, virtualization, vehicle 
+communication, safety compliance, and much more.
+
+### Personal Interest
+The meeting provided valuable insights into current trends within the open-source automotive ecosystem. It was also 
+highly relevant to my GSoC project, as I had the chance to meet my mentors in person, [Jan-Simon](mailto:jsmoeller@linuxfoundation.org), 
+[Walt](mailto:wminer@linuxfoundation.org), and [George](mailto:george.kiagiadakis@collabora.com).
+
+#### PipeWire: State of the Union
+I had the privilege of attending [George](mailto:george.kiagiadakis@collabora.com)'s session on the latest developments
+in the low-level multimedia library, PipeWire. He discussed several new features such as multithreaded execution on the 
+server side, lazy scheduling, an FFmpeg video converter, and more. While many of these features might not be directly 
+applicable to my current project, it is always beneficial to learn about the tools available within the library.
+
+#### Software-Defined Vehicles (SDVs)
+I had an idea about the buzzword of SDV but had not realized how developed and complex the topic is. Many sessions 
+such as "Accelerating SDV Through Virtualization," "How to Design SDV," and "Advancing the Virtual Vehicle Fleet", 
+greatly expanded my understanding. I also learned about the emerging Eclipse OpenSOVD community, which was especially interesting.
+
+### Stack of Open-Source Ecosystem
+I was introduced to several open-source stacks that can be used to build a comprehensive ecosystem for vehicles, 
+especially those that are connected or have autonomous capabilities. Based on what I learned, I combined several of 
+these stacks into a single system (without adding AGL), illustrated in the following diagram:
+
+![Automotive sample ecosystem](/assets/images/gsoc25_w6/w6_fig1.png)
+
+
+## Next Steps
+1. Learn more about the available automotive open-source tools.
+2. Adapt relevant open-source technologies in my GSoC project, if time allows.
+
+[1]: https://events.linuxfoundation.org/agl-amm-summer/program/schedule/
+[2]: https://www.automotivelinux.org/
