@@ -1,0 +1,100 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 08 Status Update"
+date:   2025-07-25 23:55:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 8 progress
+
+This week, I started working with the first inference model for object detection using YOLO. I began exploring possible
+implementations. One option was to implement it entirely in C to match the [PipeWire filter][1] codebase. However, this
+approach was not straightforward, as many object detection components are not directly available in C. 
+Instead, my mentors advised me to use C++ implementation wrapped inside the C program using extern "C". This allows the 
+C++ function(s) to be compiled and linked in realtime when called from the C environment.
+
+### Inference model
+
+I exported the [YOLO11][2] object detector model from PyTorch format (.pt) to the ONNX format (.onnx), so that it can
+be loaded and executed using the OpenCV's DNN module:
+
+{% highlight bash %}
+yolo export model=yolov8m.pt format=onnx
+{% endhighlight %}
+
+In the future, I may switch to the [ONNX Runtime][3] C++ API instead of the OpenCV DNN, depending on compatibility with
+[RKNN][4] and Rockchip hardware requirements.
+
+### Object Detection
+
+The pipeline begins with preprocessing the input image: scaling, padding, and resizing to the required shape
+
+{% highlight C++ %}
+// Calculate new dimensions after scaling
+int newUnpadW = static_cast<int>(std::round(static_cast<float>(image.cols) * ratio));
+int newUnpadH = static_cast<int>(std::round(static_cast<float>(image.rows) * ratio));
+
+// Evenly distribute padding on both sides
+int padLeft = dw / 2;
+int padRight = dw - padLeft;
+int padTop = dh / 2;
+int padBottom = dh - padTop;
+{% endhighlight %}
+
+The preprocessed image is then converted into a blob:
+
+{% highlight C++ %}
+cv::dnn::blobFromImage(preprocessedImage, blob, 1.0/255.0, cv::Size(inputSize, inputSize),
+cv::Scalar(0, 0, 0), true, false);
+{% endhighlight %}
+
+The ONNX YOLO model is loaded, and the detections are processed
+
+{% highlight C++ %}
+cv::dnn::Net net = cv::dnn::readNetFromONNX(yoloModelWeights);
+net.forward(netOutput, names);
+{% endhighlight %}
+
+Finally, the non-maxima suppression (NMS) is applied, and the results are visualized:
+
+{% highlight C++ %}
+cv::dnn::NMSBoxes(boxes, confidences, confThreshold, nmsThreshold, indices);
+{% endhighlight %}
+
+### extern C linkage
+
+In order to bridge the C and C++ code, I declared the C++ in the `interface.h` header file with C linkage:
+
+{% highlight C %}
+#ifdef __cplusplus
+extern "C" {
+#endif
+    void detectObjects(const char* imagePath, 
+                       float confThreshold, float nmsThreshold,
+                       const char* basePath, const char* classesFile, bool bVis);
+#ifdef __cplusplus
+}
+#endif
+{% endhighlight %}
+
+
+Currently, `detectObjects` is tested on a static image in the [PipeWire filter][1]. Finally, the entire project is built 
+using the following configuration in the `CMakeLists.txt`:
+
+{% highlight make %}
+project(cam_yolo_infer LANGUAGES C CXX)
+target_link_libraries(filter_g
+    yolo_detection
+    stdc++
+    ${PIPEWIRE_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+    )
+{% endhighlight %}
+
+## Next Steps
+1. Integrate `detectObjects()` with the live camera stream via the PipeWire detection playback node.
+
+[1]: https://aelkenawy.github.io/gsoc/tlf/agl/2025/06/27/gsoc-2025-w4su.html
+[2]: https://docs.ultralytics.com/models/yolo11/
+[3]: https://github.com/microsoft/onnxruntime
+[4]: https://github.com/ultralytics/ultralytics/blob/main/docs/en/integrations/rockchip-rknn.md
