@@ -1,0 +1,111 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 09 Status Update"
+date:   2025-08-01 23:55:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 9 progress
+
+The week, I worked on integrating the pipeline with a live feed from the camera. As a first step, I implemented 
+synchronous processing, meaning the detection occurs after the PipeWire camera buffer is dequeued, which turned out to
+be quite slow. To improve performance, threads are created to handle processing in parallel. The current version of the 
+inference model lives in the [cam_infer_models repo][1].
+
+### Format wrapping
+
+Since the OpenCV backend is used to load the ONNX model, preprocess input data, and perform the detections, I wrapped 
+the PipeWire buffer data as a `cv::Mat` of a BGR format to be used as an input to the pipeline. This conversion is done 
+in the `pwbuffer_to_cvmat` function:
+
+{% highlight C++ %}
+cv::Mat pwbuffer_to_cvmat(struct pw_buffer* buf, uint32_t frame_width, uint32_t frame_height) {
+    if (!buf || buf->buffer->n_datas == 0) return {};
+    struct spa_data* spa_data = &buf->buffer->datas[0];
+    auto* data = static_cast<uint8_t*>(spa_data->data);
+    
+    cv::Mat yuy2_frame(frame_height, frame_width, CV_8UC2, data);
+    
+    cv::Mat rgb_frame;
+    cv::cvtColor(yuy2_frame, rgb_frame, cv::COLOR_YUV2BGR_YUY2);
+
+return rgb_frame;
+}
+{% endhighlight %}
+
+After the processing is completed, and the output image frame indicated with detections is ready, the inverse function 
+`cvmat_to_pwbuffer` is called to export the result back to a PipeWire buffer.
+
+### Asynchronous object detection
+
+The `detectObjects` function is launched in a background thread. The data passed to the thread is encapsulated in a
+`struct AsyncDetectionData`. The thread starts via the `detectobjects_worker_thread` entry point function,
+which takes the `data` pointer as an argument
+
+{% highlight C++ %}
+void detectObjects_async(struct pw_buffer *out_buffer,
+float confThreshold,
+float nmsThreshold,
+const char* basePath,
+const char* classesFile,
+uint32_t frame_width,
+uint32_t frame_height,
+bool bVis,
+detection_callback_t callback,
+struct impl* user_data)
+{
+    // thread data structure
+    AsyncDetectionData* data = new AsyncDetectionData{
+    .buffer        = out_buffer,
+    .confThreshold = confThreshold,
+    .nmsThreshold  = nmsThreshold,
+    .basePath      = std::string(basePath),
+    .classesFile   = std::string(classesFile),
+    .frame_width   = frame_width,
+    .frame_height  = frame_height,
+    .bVis          = bVis,
+    .callback      = callback,
+    .user_data     = user_data
+    };
+
+    std::thread detection_thread(detectobjects_worker_thread, data);
+    detection_thread.detach();
+}
+{% endhighlight %}
+
+### PipeWire filter asynchronous calls
+
+As soon as a PipeWire buffer is available on the `detection_playback` node, and the current number of detections is below 
+`MAX_CONCURRENT_DETECTIONS`,  the `detectObjects_async` is called:
+
+{% highlight C++ %}
+if (active_detections < MAX_CONCURRENT_DETECTIONS){
+    if ((out = pw_stream_dequeue_buffer(impl->detection_playback)) != NULL) {
+        copy_buffer(in, out); //detectObjects before copying?
+        active_detections++;
+        detectObjects_async(out, confThreshold, nmsThreshold, yoloBasePath,
+                        yoloClassesFile, frame_width, frame_height, bVis,
+                        detect_completed_callback, impl);
+        }
+}
+{% endhighlight %}
+
+Once the detection processing is completed, the `detect_completed_callback` is invoked, and the buffer is queued with
+the next camera frame
+{% highlight C++ %}
+static void detect_completed_callback (struct pw_buffer* buffer,
+                                        struct impl* impl,
+                                        bool success)
+{
+    active_detections--;
+    pw_stream_queue_buffer(impl->detection_playback, buffer);
+    pw_stream_trigger_process(impl->detection_playback);
+}
+{% endhighlight %}
+
+
+## Next Steps
+1. Profile the entire pipeline to identify performance bottlenecks and work toward achieving the target frame rate (FPS).
+2. Prepare and format detection data for integration with the Flutter application.
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
