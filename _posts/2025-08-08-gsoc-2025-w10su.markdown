@@ -1,0 +1,76 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 10 Status Update"
+date:   2025-08-08 23:55:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 10 progress
+
+This week, I worked on profiling the object detection [inference model][1] using `spdlog` library across different 
+available backends and targets. After that, I began setting up the environment for gRPC communication between the server and client.
+
+### Profiling
+
+To identify bottlenecks and evaluate the performance consistency of the current implementation, I profiled my code using 
+`spdlog`, exporting results to a log file. I added the profiling section to parts of the code I suspected to be critical
+or potential performance bottlenecks. 
+Each profiling section looks like:
+
+{% highlight C++ %}
+static int t_count = 0;
+static long long t_total_duration = 0;
+const auto t_start = std::chrono::system_clock::now();
+// Code to be profiled
+const auto t_end = std::chrono::steady_clock::now();
+const auto t_duration = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count();
+t_total_duration += t_duration;
+t_count++;
+if (t_count == 10) {
+    double t_average = static_cast<double>(t_total_duration) / t_count;
+    if (enable_profiling) spdlog::info("{} cycles average duration: {} us", t_count, t_average);
+    t_count = 0;
+    t_total_duration = 0;
+}
+{% endhighlight %}
+
+The two main parts consuming most of the execution time were:
+1. Loading the neural network
+2. Performing core inference on the image frame 
+
+To gain insight into the current implementation across to different backends and targets, I built the OpenCV library from 
+source with both OpenVINO and CUDA support. The results below shows execution times (in microseconds) for the core 
+inference step:
+
+| Backend                                 | Average 10 cycles result [uS] |
+|-----------------------------------------|-------------------------------|
+| DNN_BACKEND_DEFAULT                     | 187583 (min 135162)           |
+| DNN_BACKEND_INFERENCE_ENGINE (OpenVINO) | 79448 (min 67885)             |
+| DNN_BACKEND_CUDA                        | 28134 (min 21869)             |
+
+
+### gRPC environment
+
+I began exploring gRPC for [Dart][2] and [CPP][3], which will be used for the server and client sides respectively.
+I installed the necessary dependencies for both sides and ran client/server examples to verify the environment setup.
+After discussing with my mentor, we decided to assign the server tole to the Flutter app so it can control the lifecycle
+of the program. 
+
+#### Protocol Buffers
+
+As a starting point for integrating the gRPC communication, I defined the message types and communication sequence 
+between the server and client using Protocol Buffers. The current `.proto` file contains the Remote procedure calls (RPCs) 
+that would:
+1. Register the current inference models at Flutter app `rpc registerModels (ModelListRequest) returns (ModelListResponse)`
+2. Connect the Flutter app with the selected model by the user `rpc connect (ConnectRequest) returns (ConnectResponse)`
+3. Send the stream of detections by inference model `rpc streamDetections(stream Detection) returns (stream Ack)`
+
+
+## Next Steps
+1. Integrate the gRPC CPP client with the current [system] [1], then test it using a dummy server
+2. Train the required YOLO model for the traffic signs detection mode.
+3. Integrate the gRPC Dart server into the Flutter App.
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
+[2]: https://grpc.io/docs/languages/dart/quickstart/
+[3]: https://grpc.io/docs/languages/cpp/quickstart/
