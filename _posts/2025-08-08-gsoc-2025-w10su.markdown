@@ -53,7 +53,7 @@ inference step:
 
 I began exploring gRPC for [Dart][2] and [CPP][3], which will be used for the server and client sides respectively.
 I installed the necessary dependencies for both sides and ran client/server examples to verify the environment setup.
-After discussing with my mentor, we decided to assign the server tole to the Flutter app so it can control the lifecycle
+After discussing with my mentor, we decided to assign the server role to the Flutter app so it can control the lifecycle
 of the program. 
 
 #### Protocol Buffers
