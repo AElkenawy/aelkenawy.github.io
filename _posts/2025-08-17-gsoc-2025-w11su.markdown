@@ -1,0 +1,72 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 11 Status Update"
+date:   2025-08-17 20:30:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 11 progress
+
+This week I worked on training YOLOv11 to recognize traffic signs as one of the inference modes.
+After that, I switched to integrating gRPC communication on both client and server sides of the inference model and the 
+Flutter App.
+
+### Traffic signs inference model
+
+One of the Inference models to be demonstrated is the traffic signs recognition. I trained a small YOLOv11 model on the
+German Traffic Sign Recognition Benchmark ([GTSRB][1]) as a first step. I used the raw image traffic signs without augmenting
+them with additional backgrounds; augmentation could be future work to improve the detection accuracy and stability. 
+The model was trained using Ultralytics YOLO CLI:
+
+{% highlight bash %}
+$ yolo train model=yolo11s.yaml data=gtsrb_yolo_dataset/data.yaml epochs=10 imgsz=320 batch=32 workers=8 name=small-obj_320
+{% endhighlight %}
+
+After training, the model was exported as an ONNX to be consumed by the [inference model][2]
+
+{% highlight bash %}
+$ $ yolo export model=small-obj_320.pt format=onnx imgsz=640
+{% endhighlight %}
+
+
+### gRPC client
+
+I began integrating the gRPC into the [inference model][2] and tested request calls using a Python dummy server at first. 
+Using the dummy server, I verified the gRPC communication from the client side by receiving a stream of
+detections and switching between different models from the server side. The `Coordinator` protobuf service definition is
+hosted in the [camera_idl][3] repository, which can be added as a submodule on both client and server side, and can host 
+other services for future components.
+
+### gRPC server
+
+I integrated the gRPC server communication with the [camera_streams_app][4], which depends on the [camera_linux][5] package .
+I started with a Dart server CLI example that printed received detections in the terminal. After that, I used that 
+CLI server example to integrate the `Coordinator` server service into the [camera_streams_app][4]. Finally, I added 
+some UI features so the app displays information about the detected traffic sign in the upper-right corner of the 
+application window.
+
+
+### The pipeline in action
+
+As described in the `coordinator.proto` protobuf file, the main RPC `streamDetections` is sending a stream of detected 
+objects detections and receiving a stream of `Ack` messages. The `Ack` mesages indicate successful receipt of the detection
+message, and communicate the next action: continue streaming, switch the inference model, or to stop streaming service.
+For now, only one mode (inference model) is working reliably and PipeWire streams are manually connected using `qpwgraph`.
+Sample detection of the Double Curve traffic sign is shown below:
+
+![Current pipeline](/assets/images/gsoc25_w11/w11_fig1.png){:style="max-width:120%;height:120%;"}
+
+
+
+## Next steps
+
+1. Retrain the current inference model to improve performance
+2. Add a model-switching feature, using a dropdown in the Flutter app.
+3. Automate the PipeWire connections using function calls
+
+
+[1]: https://benchmark.ini.rub.de/gtsrb_news.html
+[2]: https://github.com/AElkenawy/cam_infer_models/
+[3]: https://github.com/AElkenawy/camera_idl
+[4]: https://github.com/AElkenawy/camera_streams_app
+[5]: https://github.com/toyota-connected/tcna-packages/tree/main/packages/camera/camera_linux/
