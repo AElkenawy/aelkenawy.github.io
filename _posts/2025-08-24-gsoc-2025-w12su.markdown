@@ -1,0 +1,34 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 12 Status Update"
+date:   2025-08-24 21:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 12 progress
+
+This week I started integrating the CI jobs for the environment used by the [inference model][1].
+
+### cam_infer_models CI Job
+
+I wrote the first CI job to build the environment, including the OpenCV with OpenVINO support and the gRPC
+library for the server-client communication. I will add two more CI jobs of clang-tidy and clang-format. I used 
+the workflow from the ivi-homescreen repository as a reference and tested the workflow locally in a Docker container
+using `act`:
+
+{% highlight bash %}
+act workflow_dispatch -j infer_models
+{% endhighlight %}
+
+As a second test, I ran the workflow on GitHub Actions. During that run I removed `ubuntu-24.04` from the OS matrix in 
+`cam-infer-models.yaml` as GitHub Actions does not provide an `ubuntu-24.04` runner.
+
+
+## Next steps
+
+1. Fix cmake issues of [inference model][1].
+2. Add CI jobs for clang-tidy and clang-format
+3. Improving the current inference models and automate dataset generation.
+
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
