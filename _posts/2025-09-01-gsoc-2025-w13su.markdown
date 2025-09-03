@@ -1,0 +1,41 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 13 Status Update"
+date:   2025-09-01 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 13 progress
+
+This week I resumed integrating the CI job for the [inference model][1] environment.
+I encountered some issues while trying to get the CI jobs checks successfully in the GitHub workflow environment.
+Currently, the CI job workflow is represented in a pull request, which should be merged as soon as I address the reviewer's 
+requested changes.
+
+### Workflow caches
+
+The caches were not working for both of gRPC and OpenCV built dependencies, resulting in inefficient check runs. The
+main cause was that `CMAKE_STAGING_PREFIX` CMake argument used when building the libraries did not match the declared 
+cache path. 
+
+### System dependencies
+
+Another issue with missing admin permissions when trying to `make install` the `zlib1g-dev` package after building it
+from source. This issue was resolved by installing the `zlib1g-dev` as a system library at the beginning of the workflow.
+In contrast, I switched the `spdlog` library to be a submodule instead of installing it as a system package. This approach
+is followed as `spdlog` is not needed to be a system library, which in turn mitigates the risk of breaking other packages.
+
+### Matching Yocto versions
+
+I started to match the versions of used libraries (OpenVINO, OpenCV and gRPC) with the available versions in the master
+branch of Yocto. I checked each library version on Yocto branches using [OpenEmbedded Layer Index][2]  
+
+## Next steps
+
+1. Complete and merge the current CI job.
+2. Improving the current inference models and automate dataset generation.
+3. Fix CMake issues in the inference model.
+
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
+[2]: https://layers.openembedded.org/layerindex/branch/master/layers/
