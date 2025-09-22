@@ -1,0 +1,43 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 16 Status Update"
+date:   2025-09-21 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 16 progress
+
+Over the past three weeks, I focused on finalizing and merging the CI job for the [inference model][1] 
+environment setup. In parallel, I retrained the traffic signs model using augmented traffic signs images
+with artificial backgrounds. Eventually, I fixed the CMakeLists file issues to improve the building scenario of the 
+`cam_infer_models` setup.
+
+### CI Job workflow
+
+I removed Ubuntu 20 from the OS matrix since Github Actions rarely provides a worker for it, however, I prioritized 
+the Ubuntu 22 as being more relevant for our application. I also added the PipeWire setup to workflow as the final 
+component of the [cam_infer model][1] environment setup. After these modifications, the job was executed successfully
+and the `ae/ci` branch was merged. 
+
+### Model retraining
+
+I attempted to improve the traffic signs detector by retraining it with augmented images that included artificially
+generated backgrounds, however, this approach did not yield any improvement in detection performance.
+
+### CMakeLists improvements
+
+Following my GSoC mentor's recommendations, I updated the CMakeLists configuration of the [cam_infer model][1] to:
+- Switch the C++ standard to C++17
+- Avoid dynamically fetching the gRPC repo
+- Add the gRPC as a submodule (`third_party` directory)
+
+As gRPC is now pinned to v1.71.0 to align with the Yocto master branch, I modified the proto file generation scripts of
+the [camera_idl][2] to ensure compatibility with this setup and use the corresponding version of the protoc generator.
+
+## Next steps
+
+1. Improve the Flutter App lifecycle and inference model switching mechanism 
+2. Enhance the current inference models and automate dataset generation.
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
+[2]: https://github.com/AElkenawy/camera_idl
