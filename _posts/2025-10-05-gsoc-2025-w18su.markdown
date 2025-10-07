@@ -1,0 +1,34 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 18 Status Update"
+date:   2025-10-05 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 18 progress
+
+During the past week, I began exploring TensorFlow and setting up the environment for TensorFlow Lite by 
+following the steps in the [karthickai/tflite][1] repository. I am building TensorFlow version 
+2.19.0 in order to match the version used in the Yocto master branch listed in the [OpenEmbedded Layer Index][2]. 
+
+### abseil-cpp library linking issues
+
+While building the tensorflow library shared library (.so), I encountered an issue where the Abseil (absl) library was 
+not found when running:
+
+{% highlight bash %}
+$ ldd libtensorflow-lite.so
+{% endhighlight %}
+
+I found out that the absl library needs to be added as a `sub_directory`, then explicitly linked using `target_link_libraries` 
+to my executable in the CMakeLists.txt. My mentor suggested following the [abseil-cpp build instructions][3], starting 
+by adding the `abseil-cpp` as a Git submodule in my project.
+
+## Next steps
+
+1. Complete the TensorFlow setup 
+2. Integrate the TensorFlow pipeline with the current Camera PipeWire application
+
+[1]: https://github.com/karthickai/tflite/
+[2]: https://layers.openembedded.org/layerindex/branch/master/layers/
+[3]: https://github.com/abseil/abseil-cpp/blob/master/CMake/README.md
