@@ -1,0 +1,48 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 19 Status Update"
+date:   2025-10-13 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 19 progress
+
+During the past week, I managed to complete the TensorFlow setup by following the steps from the [karthickai/tflite][1] 
+repository.
+
+### cam_infer_models integration
+
+I began integrating the TensorFlow Lite setup with the [cam_infer model][2] repository by adding both the TensorFlow
+and Abseil-CPP repositories as submodules to the third_party directory.
+
+After that, I checked out the v2.19.0 and lts_2023_08_02 tags of the two repositories, respectively, to match the 
+versions of the [OpenEmbedded Layer Index][3]. After that I built
+
+I built the TensorFlow API using the following command:
+
+{% highlight bash %}
+    $ cmake .. -GNinja \
+    -DTFLITE_ENABLE_GPU=ON \
+    -DTFLITE_ENABLE_XNNPACK=ON \
+    -DBUILD_SHARED_LIBS=ON \
+    -DFETCHCONTENT_FULLY_DISCONNECTED=OFF \
+    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DCMAKE_STAGING_PREFIX=$(pwd)/out \
+    -DABSL_PROPAGATE_CXX_STD=ON \
+    -DCMAKE_POLICY_DEFAULT_CMP0135=NEW \
+    -DCMAKE_PREFIX_PATH=${HOME}/AGL/cam_app_ws/cam_infer_models/third_party/abseil-cpp/build
+{% endhighlight %}
+
+After the build was completed, I ran the example command to test the model:
+
+{% highlight bash %}
+    $  ./TFLiteImageClassification ../models/classification/mobilenet_v1_1.0_224_quant.tflite ../models/classification/labels_mobilenet_quant_v1_224.txt ../images/classification_example.jpg
+{% endhighlight %}
+
+## Next steps
+1. Integrate the TensorFlow pipeline with the current Camera PipeWire application for camera streams
+
+[1]: https://github.com/karthickai/tflite/
+[2]: https://github.com/AElkenawy/cam_infer_models/
+[3]: https://layers.openembedded.org/layerindex/branch/master/layers/
