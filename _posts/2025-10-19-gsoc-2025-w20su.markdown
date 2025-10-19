@@ -1,0 +1,64 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 20 Status Update"
+date:   2025-10-19 23:00:00 +0300
+categories: GSoC TLF AGL 
+---
+
+## Week 20 progress
+
+During the past week, I integrated the TensorFlow Lite pipeline with the existing PipeWire pipeline
+to process camera streams from the PC.
+
+### cam_infer_models integration
+
+In the [cam_infer model][1] repository, I implemented an inference script analogous to the previous `objectDetection.cc`,
+adapted for a TensorFlow model instead of YOLO. The script initializes the interpreter, performs Non-Maximum Suppression
+(NMS), parses the bounding boxes and renders overlays on the frames. For now, I created a new branch which does not include
+the  complete set of new changes yet.
+
+I downloaded the `ssd-mobilenet-v1` model from [kaggle][2] that works but currently produces false positives, which I am
+currently investigating the root causes of such behavior.  In parallel, I am evaluating alternative 
+models with better accuracy and setting up CI jobs.  
+
+The finalized command used to build the TensorFlow Lite library is:
+
+{% highlight bash %}
+$ cd cam_infer_models
+$ git submodule add https://github.com/abseil/abseil-cpp third_party/abseil-cpp
+$ git submodule add https://github.com/tensorflow/tensorflow third_party/tensorflow
+$ cd third_party/tensorflow
+$ git checkout v2.19.0
+$ cd ../abseil-cpp
+$ git checkout lts_2023_08_02
+$ mkdir -p build && cd build
+$ cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release ..
+$ make -j$(nproc)
+$ cd ../../tensorflow/tensorflow/lite
+$ mkdir -p build && cd build
+$ cmake .. -GNinja \
+-DTFLITE_ENABLE_GPU=ON \
+-DTFLITE_ENABLE_XNNPACK=ON \
+-DBUILD_SHARED_LIBS=ON \
+-DFETCHCONTENT_FULLY_DISCONNECTED=OFF \
+-DCMAKE_C_COMPILER=/usr/bin/clang \
+-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+-DCMAKE_STAGING_PREFIX=$(pwd)/out \
+-DABSL_PROPAGATE_CXX_STD=ON \
+-DCMAKE_POLICY_DEFAULT_CMP0135=NEW \
+-DCMAKE_PREFIX_PATH=../../../../abseil-cpp/build
+$ ninja -C . -j 30
+{% endhighlight %}
+
+After that I patched the `flatbuffers` directory from the [karthickai/tflite][1] repository to successfully 
+build the `libtensorflow-lite.so` library.
+
+## Next steps
+1. Replace the current `ssd-mobilenet-v1` model with one that performs better (if available), and adjust inference script accordingly
+2. Complete the CI job
+3. Create a Yocto image for the TFLite pipeline
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
+[2]: https://www.kaggle.com/models/tensorflow/ssd-mobilenet-v1/tfLite
+[3]: https://github.com/karthickai/tflite/
+
