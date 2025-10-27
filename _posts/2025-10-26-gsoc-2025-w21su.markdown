@@ -1,0 +1,82 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 21 Status Update"
+date:   2025-10-26 23:00:00 +0200
+categories: GSoC TLF AGL 
+---
+
+## Week 21 progress
+
+During the past week, I began preparing to build the AGL image that includes both [cam-infer-models][1] and 
+[camera-streams-app][2] recipes.
+
+### Merge the CI Job
+
+I merged [PR #2][3], which introduces the TensorFlow Lite environment, along with a CI the job for setting up
+that environment and the scripts for loading the `ssd-mobilenet-v1` model and performing detection. The section
+for building the TensorFlow Lite inside the CI workflow `cam_tflite_infer.yaml` looks like this: 
+
+{% highlight bash %}
+- name: Cache tensorflow
+  id: cache-tensorflow
+  uses: actions/cache@v4
+  with:
+    key: tensorflow
+    path: |
+      ${{ github.workspace }}/build/staging
+
+- name: Build tensorflow
+  if: steps.cache-tensorflow.outputs.cache-hit != 'true'
+  working-directory: ${{github.workspace}}
+  run: |
+    mkdir -p ${{github.workspace}}/build/tensorflow
+    CC=/usr/bin/clang CXX=/usr/bin/clang++ \
+    cmake \
+      -S ${{ github.workspace }}/third_party/tensorflow/tensorflow/lite \
+      -B ${{ github.workspace }}/build/tensorflow \
+      -G Ninja \
+      -D TFLITE_ENABLE_GPU=ON \
+      -D TFLITE_ENABLE_XNNPACK=ON \
+      -D BUILD_SHARED_LIBS=ON \
+      -D FETCHCONTENT_FULLY_DISCONNECTED=OFF \
+      -D CMAKE_C_COMPILER=/usr/bin/clang \
+      -D CMAKE_CXX_COMPILER=/usr/bin/clang++ \
+      -D CMAKE_STAGING_PREFIX=${{ github.workspace }}/build/staging \
+      -D ABSL_PROPAGATE_CXX_STD=ON \
+      -D CMAKE_POLICY_DEFAULT_CMP0135=NEW \
+      -D CMAKE_PREFIX_PATH=${{ github.workspace }}/build/staging
+
+    ninja -C ${{ github.workspace }}/build/tensorflow -j 30
+{% endhighlight %}
+
+
+### Prepare the repos for the AGL Yocto image
+
+My GSoC mentor [Joel](mailto:joel.winarske@toyotaconnected.com) performed a code refactoring focused mainly on the CMakeLists
+structure, scripts organization, removal of unnecessary submodules for the AGL image, and fixing minor coding issues. The
+refactoring code is hosted on the fork  `jw/cmake-refactor` and opened as [PR #3][4]. I reviewed the PR and committed some 
+additional changes for the AGL image, which include:
+
+1. Adding `LICENSE` file for the 3 repositories (including [camera_idl][5])
+2. Updating the `build.sh` script of [camera_idl][5] to generates `protobuf` for the gRPC
+3. Remove dead code of [camera-streams-app][2], using `flutter_analyze` to check linting issues and modifying `pubspec.yaml`
+4. Fixing a typo and testing the current setup of [cam-infer-models][1] 
+
+
+### Start the AGL image build
+I started building the AGL image using `agl-ivi-image` as a base. I added the recipes to `meta-agl-demo/recipes-demo`
+and the build process is ongoing. My GSoC mentors [Joel](mailto:joel.winarske@toyotaconnected.com)
+and [Jan-Simon](mailto:jsmoeller@linuxfoundation.org) have been extremely helpful in preparing the recipes and 
+debugging the build process.
+
+
+## Next steps
+1. Complete building the Yocto image
+2. Research and retrain the current `ssd-mobilenet-v1` for better performance
+
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
+[2]: https://github.com/AElkenawy/camera_streams_app
+[3]: https://github.com/AElkenawy/cam_infer_models/pull/2
+[4]: https://github.com/AElkenawy/cam_infer_models/pull/3
+[5]: https://github.com/AElkenawy/camera_idl
