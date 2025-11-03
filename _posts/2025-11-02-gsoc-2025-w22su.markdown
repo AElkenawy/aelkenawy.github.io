@@ -1,0 +1,109 @@
+---
+layout: post
+title:  "GSoC 2025 - Week 22 Status Update"
+date:   2025-11-02 14:00:00 +0200
+categories: GSoC TLF AGL 
+---
+
+## Week 22 progress
+
+During the past week, I completed recipes for both [cam-infer-models][1] and [camera-streams-app][2] submitted the patch,
+and continued reviewing [PR #3][3] for the `cam-infer-models` refactoring 
+
+### AGL Image Finalization
+#### Finalizing the Recipes
+The recipes `flutter-camera-streams-app_git.bb` and `camera-infer-models_git.bb` for [cam-infer-models][1] and 
+[camera-streams-app][2] respectively, were finalized. For the `flutter-camera-streams-app_git.bb` the `agl-app` were added
+as an inherit in order to include a specific button inside the `agl-ivi-demo-flutter` image interface. 
+
+#### Completing the Patch
+Along with the recipes, the patch file `0001-Integration-of-GSoC-camera-streams-app.patch` includes the following:
+- `opencv_%.bbappend` and `opencv_fluttercamerastreams.inc`, which add DNN headers for OpenCV:
+{% highlight bash %}
+PACKAGECONFIG:append:pn-opencv = " dnn"
+{% endhighlight %}
+
+- `tensorflow-lite_%.bbappend` and `tensorflow-lite_fluttercamerastreams.inc` which include the `tensorflow-lite` headers:
+{% highlight bash %}
+do_install:append () {
+    cd ${S}
+    for header in `find ./tensorflow/lite -type f -name *.h`; do
+        install -D -m 0644 $header ${D}${includedir}/$header
+    done
+    for header in `find ./tensorflow/compiler/mlir -type f -name *.h`; do
+        install -D -m 0644 $header ${D}${includedir}/$header
+    done
+    for header in `find ./tensorflow/core/public -type f -name *.h`; do
+        install -D -m 0644 $header ${D}${includedir}/$header
+    done
+    cd -
+    cd ${WORKDIR}/bazel/output_base/external/flatbuffers/include
+    for header in `find ./flatbuffers -type f`; do
+        install -D -m 0644 $header ${D}${includedir}/$header
+    done
+    cd -
+}
+{% endhighlight %}
+
+My GSoC mentor, [Jan-Simon](mailto:jsmoeller@linuxfoundation.org) assisted me in finalizing the recipes and provided a complete walkthrough for submitting
+the patch to Gerrit. The patch is currently under review as a [Gerrit change 31262][4], corresponding to
+Jira ticket [SPEC-5505][5]. 
+
+#### Building and Running the image in QEMU
+The following steps were executed to build and run the AGL image:
+- Apply the patch
+{% highlight bash %}
+$ cd ~/AGL/master/meta-agl-demo
+$ git am ~/0001-Integration-of-GSoC-camera-streams-app.patch
+{% endhighlight %} 
+
+- Configure the QEMU build
+{% highlight bash %}
+$ source meta-agl/scripts/aglsetup.sh -f -m qemux86-64 -b qemux86-64 agl-demo
+$ echo 'PARALLEL_MAKE = "-j16" ' >> conf/local.conf
+$ echo 'BB_NUMBER_THREADS = "16" ' >> conf/local.conf
+$ echo 'FLUTTER_CAMERA_STREAMS_ENABLE = "1" ' >> conf/local.conf  
+$ echo 'INHERIT += "buildhistory" ' >> conf/local.conf
+$ echo 'BUILDHISTORY_COMMIT = "1" ' >> conf/local.conf
+$ echo 'INHERIT += "rm_work" ' >> conf/local.conf
+$ echo 'DL_DIR = "${TOPDIR}/downloads" ' >> conf/local.conf
+{% endhighlight %}
+
+- Add the `meta-tensorflow` layer and start the build
+{% highlight bash %}
+$ bitbake-layers add-layer ${AGL_TOP}/master/external/meta-tensorflow
+$ source agl-init-build-env
+$ bitbake agl-ivi-demo-flutter
+{% endhighlight %}
+
+- Run the image
+{% highlight bash %}
+$ xz -d tmp/deploy/images/qemux86-64/agl-ivi-demo-flutter-qemux86-64.rootfs-<timestamp>.wic.xz
+$ runqemu ./tmp/deploy/images/qemux86-64/agl-ivi-demo-flutter-qemux86-64.rootfs-<timestamp>.qemuboot.conf kvm serialstdio slirp publicvnc
+# In another terminal
+$ vncviewer :0
+{% endhighlight %}
+
+![QEMU view of the AGL image](/assets/images/gsoc25_w22/w22_fig1.png){:style="max-width:100%;height:120%;"}
+
+I am currently debugging the runtime error (indicated in the figure) related to camera initialization.
+
+### Testing the build for the PR
+
+I continued testing the [PR #3][3] and committed some changes to restore the script to its previous working state. 
+The changes include:
+1. `#c5fff9b` Include the missing flatbuffer headers;
+2. `#a36edc5` Add PipeWire `param_changed` routine and `stream_events`;
+3. `#d375a96` Fix `pw_streams` properties and add `pw_listeners`.
+
+
+## Next steps
+1. Retrain the current `ssd-mobilenet` model.
+2. Finalize documentation and prepare the demo video.
+
+
+[1]: https://github.com/AElkenawy/cam_infer_models/
+[2]: https://github.com/AElkenawy/camera_streams_app
+[3]: https://github.com/AElkenawy/cam_infer_models/pull/3
+[4]: https://gerrit.automotivelinux.org/gerrit/c/AGL/meta-agl-demo/+/31262
+[5]: https://lf-automotivelinux.atlassian.net/browse/SPEC-5505
